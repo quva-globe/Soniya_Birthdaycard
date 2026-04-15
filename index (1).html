@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Special Gift For You!</title>
+    <style>
+        /* =========================================
+           1. CSS VARIABLES & RESET (NEON THEME)
+           ========================================= */
+        :root {
+            --bg-dark: #050505;
+            --bg-mid: #0a0a0a;
+            --neon-pink: #ff007f;
+            --neon-purple: #bc13fe;
+            --neon-cyan: #00e5ff;
+            --neon-gold: #ffea00;
+            --glass-bg: rgba(10, 10, 15, 0.65);
+            --glass-border: rgba(0, 229, 255, 0.4);
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            min-height: 100dvh;
+            background: radial-gradient(circle at center, var(--bg-mid) 0%, var(--bg-dark) 100%);
+            color: var(--text-main);
+            overflow: hidden; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Ambient Background Canvas (Living Particles) */
+        #ambient-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Behind UI, but catches clicks */
+        }
+
+        /* Canvas for High-Performance Confetti */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* =========================================
+           2. MAIN CONTAINER & NEON GLASSMORPHISM
+           ========================================= */
+        .app-container {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.1), inset 0 0 20px rgba(188, 19, 254, 0.2);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            display: none; 
+            animation: panelGlowPulse 3s infinite alternate; /* Attract user to panel */
+        }
+
+        .panel.active {
+            display: block;
+            animation: popIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, panelGlowPulse 4s infinite alternate;
+        }
+
+        .panel.fade-out {
+            animation: popOut 0.5s ease-in forwards;
+        }
+
+        /* =========================================
+           3. TYPOGRAPHY & NEON BUTTONS
+           ========================================= */
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+            text-shadow: 0 0 20px rgba(188, 19, 254, 0.5);
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            color: #e0e0e0;
+        }
+
+        .btn {
+            background: transparent;
+            border: 2px solid var(--neon-pink);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: btnNeonAttract 2s infinite; /* Mind-blowing attraction pulse */
+            transition: all 0.3s ease;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            z-index: -1;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            border-color: var(--neon-cyan);
+            animation: none;
+            box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-purple);
+        }
+
+        .btn:hover::before { opacity: 0.8; }
+        .btn:active { transform: translateY(1px); }
+
+        /* =========================================
+           4. CSS GIFT BOX ANIMATION (NEON UPGRADE)
+           ========================================= */
+        .gift-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 30px auto;
+            cursor: pointer;
+            animation: float 3s ease-in-out infinite, giftNeonPulse 1.5s infinite alternate;
+        }
+
+        .gift-box {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to right, var(--neon-pink), #800040);
+            border-radius: 10px;
+            box-shadow: 0 0 20px var(--neon-pink), inset 0 0 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--neon-pink);
+        }
+
+        .gift-box::after { 
+            content: '';
+            position: absolute;
+            left: 50%; transform: translateX(-50%);
+            width: 30px; height: 100%;
+            background: var(--neon-gold);
+            box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px rgba(0,0,0,0.4);
+        }
+
+        .gift-lid {
+            position: absolute;
+            top: 20px; left: -10px;
+            width: 170px; height: 40px;
+            background: linear-gradient(to right, #ff4d79, var(--neon-pink));
+            border-radius: 8px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.5), 0 0 20px var(--neon-pink);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 2;
+            border: 1px solid var(--neon-pink);
+        }
+
+        .gift-lid::after { 
+            content: '';
+            position: absolute;
+            left: 50%; transform: translateX(-50%);
+            width: 30px; height: 100%;
+            background: #fffb00;
+            box-shadow: 0 0 10px var(--neon-gold);
+        }
+
+        .gift-container:hover { animation: shake 0.5s infinite, giftNeonPulse 0.5s infinite alternate; }
+        
+        .gift-container.open .gift-lid {
+            transform: translateY(-120px) rotate(20deg) scale(1.1);
+            opacity: 0;
+        }
+
+        /* =========================================
+           5. FORMS & GENERATOR
+           ========================================= */
+        .input-group { margin-bottom: 20px; text-align: left; }
+
+        .input-group label {
+            display: block; margin-bottom: 8px; font-size: 0.9rem;
+            color: var(--neon-cyan); font-weight: 600; letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        }
+
+        .input-group input {
+            width: 100%; padding: 15px; border-radius: 12px;
+            border: 2px solid rgba(188, 19, 254, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            color: white; font-size: 1.1rem; outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+        }
+
+        .link-output-container { margin-top: 20px; display: none; }
+
+        #generatedLink {
+            padding: 15px; background: rgba(0,0,0,0.8);
+            border-radius: 12px; border: 1px dashed var(--neon-pink);
+            word-break: break-all; font-size: 0.9rem;
+            color: var(--neon-cyan); margin-bottom: 15px;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        }
+
+        /* =========================================
+           6. FOOTER (SHIMMER EFFECTS & FIXED BOTTOM)
+           ========================================= */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 20px 0 10px 0;
+            z-index: 100;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none; /* Let clicks pass through to background */
+        }
+
+        .footer-creators {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        /* Shimmer Animation for Names */
+        .shimmer-name {
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-purple), var(--neon-cyan));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmerEffect 3s linear infinite;
+            font-weight: 900;
+            font-size: 1.05rem;
+            padding: 0 5px;
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+
+        .footer-quva {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .footer-quva span {
+            color: var(--neon-cyan);
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* =========================================
+           7. KEYFRAME ANIMATIONS
+           ========================================= */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-3deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(3deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes popOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8) translateY(-30px); visibility: hidden; }
+        }
+
+        @keyframes shimmerEffect {
+            0% { background-position: 100% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Attractor Animations */
+        @keyframes btnNeonAttract {
+            0%, 100% { box-shadow: 0 0 10px var(--neon-pink), inset 0 0 10px var(--neon-purple); transform: scale(1); }
+            50% { box-shadow: 0 0 25px var(--neon-cyan), inset 0 0 15px var(--neon-pink); transform: scale(1.03); }
+        }
+
+        @keyframes giftNeonPulse {
+            0% { filter: drop-shadow(0 0 10px var(--neon-pink)); }
+            100% { filter: drop-shadow(0 0 30px var(--neon-purple)); }
+        }
+
+        @keyframes panelGlowPulse {
+            0% { box-shadow: 0 0 20px rgba(0, 229, 255, 0.1), inset 0 0 10px rgba(188, 19, 254, 0.1); }
+            100% { box-shadow: 0 0 40px rgba(0, 229, 255, 0.3), inset 0 0 30px rgba(188, 19, 254, 0.3); }
+        }
+
+        /* Typewriter Cursor */
+        .cursor { display: inline-block; width: 3px; background-color: var(--neon-cyan); animation: blink 1s infinite; box-shadow: 0 0 8px var(--neon-cyan);}
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="ambient-canvas"></canvas>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="app-container">
+        
+        <div id="panel-intro" class="panel active">
+            <div class="gift-container" id="gift" onclick="openGift()">
+                <div class="gift-box"></div>
+                <div class="gift-lid"></div>
+            </div>
+            <h1>A Surprise For You!</h1>
+            <p>Tap the glowing gift box above to reveal your magical card.</p>
+        </div>
+
+        <div id="panel-card" class="panel">
+            <h1 id="bday-title">Happy Birthday!</h1>
+            <p id="bday-message-container" style="min-height: 80px;">
+                <span id="bday-message"></span><span class="cursor">&nbsp;</span>
+            </p>
+            <p style="font-size: 1rem; color: var(--neon-cyan); font-weight: bold; margin-top: 20px; text-shadow: 0 0 5px var(--neon-cyan);">
+                Sent with ❤️ from <span id="sender-name" style="color: var(--neon-pink);">Someone Special</span>
+            </p>
+            
+            <button class="btn" style="margin-top: 20px; padding: 18px;" onclick="switchPanel('panel-generator')">
+                Create Your Own Gift Card
+            </button>
+        </div>
+
+        <div id="panel-generator" class="panel">
+            <h1>✨ Magic Link Maker</h1>
+            <p>Create a custom encrypted link for your friend!</p>
+            
+            <div class="input-group">
+                <label>Friend's Name (To):</label>
+                <input type="text" id="input-to" placeholder="e.g., Sarah">
+            </div>
+            <div class="input-group">
+                <label>Your Name (From):</label>
+                <input type="text" id="input-from" placeholder="e.g., Alex">
+            </div>
+            
+            <button class="btn" style="padding: 18px;" onclick="generateLink()">Generate Magic Link</button>
+            
+            <div id="link-output-area" class="link-output-container">
+                <div id="generatedLink"></div>
+                <button id="copy-btn" class="btn" style="border-color: var(--neon-cyan); background: rgba(0, 229, 255, 0.1);" onclick="copyLink()">
+                    📋 Copy to Clipboard
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <div class="footer-creators">
+            Crafted & Made by 
+            <span class="shimmer-name">Soniya</span> &bull; 
+            <span class="shimmer-name"></span> &bull; 
+            <span class="shimmer-name"></span> &bull; 
+            <span class="shimmer-name"></span>
+        </div>
+        <div class="footer-quva">
+            <span></span>
+        </div>
+    </div>
+
+    <script>
+        // --- 0. AMBIENT BACKGROUND SYSTEM (LIVING PARTICLES) ---
+        const bgCanvas = document.getElementById('ambient-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let bgWidth = bgCanvas.width = window.innerWidth;
+        let bgHeight = bgCanvas.height = window.innerHeight;
+
+        let bgParticles = [];
+        const neonPalette = ['#ff007f', '#bc13fe', '#00e5ff'];
+
+        class AmbientParticle {
+            constructor(x, y, isBurst = false) {
+                this.x = x || Math.random() * bgWidth;
+                this.y = y || Math.random() * bgHeight;
+                this.r = Math.random() * 2.5 + 0.5; // Size
+                this.dx = (Math.random() - 0.5) * (isBurst ? 8 : 1); // Speed
+                this.dy = (Math.random() - 0.5) * (isBurst ? 8 : 1);
+                this.color = neonPalette[Math.floor(Math.random() * neonPalette.length)];
+                this.life = isBurst ? 80 : Infinity; // Bursts die, ambient lives forever
+                this.alpha = isBurst ? 1 : Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+                // Bounce off walls
+                if (this.x < 0 || this.x > bgWidth) this.dx *= -1;
+                if (this.y < 0 || this.y > bgHeight) this.dy *= -1;
+                if (this.life !== Infinity) {
+                    this.life--;
+                    this.alpha = this.life / 80; // Fade out
+                }
+            }
+            draw() {
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                bgCtx.fillStyle = this.color;
+                bgCtx.globalAlpha = this.alpha;
+                bgCtx.shadowBlur = 15;
+                bgCtx.shadowColor = this.color;
+                bgCtx.fill();
+                bgCtx.globalAlpha = 1; // Reset
+            }
+        }
+
+        // Initialize background with 60 floating particles
+        for(let i=0; i<60; i++) bgParticles.push(new AmbientParticle());
+
+        // Create a neon burst wherever the user clicks
+        window.addEventListener('click', (e) => {
+            for(let i=0; i<12; i++) {
+                bgParticles.push(new AmbientParticle(e.clientX, e.clientY, true));
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            bgWidth = bgCanvas.width = window.innerWidth;
+            bgHeight = bgCanvas.height = window.innerHeight;
+        });
+
+        function animateBackground() {
+            requestAnimationFrame(animateBackground);
+            bgCtx.clearRect(0, 0, bgWidth, bgHeight);
+            
+            // Remove dead particles, update and draw alive ones
+            bgParticles = bgParticles.filter(p => p.life > 0);
+            bgParticles.forEach(p => { p.update(); p.draw(); });
+        }
+        animateBackground();
+
+
+        // --- 1. STATE & URL DATA EXTRACTION ---
+        let recipientName = "Friend";
+        let senderName = "Someone Special";
+        const messageText = "Wishing you a mind-blowing day filled with joy, success, and incredible moments. You deserve the absolute best today and always!";
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encryptedData = urlParams.get('data');
+            
+            if (encryptedData) {
+                try {
+                    const decodedStr = decodeURIComponent(escape(atob(encryptedData)));
+                    const dataObj = JSON.parse(decodedStr);
+                    if (dataObj.to) recipientName = dataObj.to;
+                    if (dataObj.from) senderName = dataObj.from;
+                } catch (e) {
+                    console.error("Link data is corrupted or invalid.");
+                }
+            }
+        };
+
+        // --- 2. PANEL TRANSITION SYSTEM ---
+        function switchPanel(targetPanelId) {
+            const currentPanel = document.querySelector('.panel.active');
+            currentPanel.classList.remove('active');
+            currentPanel.classList.add('fade-out');
+
+            setTimeout(() => {
+                currentPanel.style.display = 'none';
+                currentPanel.classList.remove('fade-out');
+                
+                const newPanel = document.getElementById(targetPanelId);
+                newPanel.style.display = 'block';
+                setTimeout(() => { newPanel.classList.add('active'); }, 50);
+            }, 500); 
+        }
+
+        // --- 3. GIFT BOX INTERACTION & TYPEWRITER ---
+        function openGift() {
+            const gift = document.getElementById('gift');
+            gift.classList.add('open'); 
+            
+            setTimeout(() => {
+                fireConfetti();
+                switchPanel('panel-card');
+                
+                setTimeout(() => {
+                    document.getElementById('bday-title').innerText = `Happy Birthday, ${recipientName}! 🎉`;
+                    document.getElementById('sender-name').innerText = senderName;
+                    typeWriter();
+                }, 600);
+
+            }, 600);
+        }
+
+        let i = 0;
+        function typeWriter() {
+            if (i < messageText.length) {
+                document.getElementById("bday-message").innerHTML += messageText.charAt(i);
+                i++;
+                setTimeout(typeWriter, 35); // Typing speed
+            } else {
+                document.querySelector('.cursor').style.display = 'none'; 
+            }
+        }
+
+        // --- 4. FRONTEND DATABASE (LINK GENERATOR) ---
+        function generateLink() {
+            const to = document.getElementById('input-to').value.trim();
+            const from = document.getElementById('input-from').value.trim();
+
+            if (!to || !from) {
+                alert("Please fill in both names to create a magical link!");
+                return;
+            }
+
+            const dataObj = { to: to, from: from };
+            const jsonStr = JSON.stringify(dataObj);
+            const base64Str = btoa(unescape(encodeURIComponent(jsonStr)));
+
+            const baseUrl = window.location.origin + window.location.pathname;
+            const finalUrl = `${baseUrl}?data=${base64Str}`;
+
+            document.getElementById('generatedLink').innerText = finalUrl;
+            document.getElementById('link-output-area').style.display = 'block';
+        }
+
+        function copyLink() {
+            const linkText = document.getElementById('generatedLink').innerText;
+            navigator.clipboard.writeText(linkText).then(() => {
+                const copyBtn = document.getElementById('copy-btn');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = "✅ Copied Successfully!";
+                copyBtn.style.transform = "scale(1.05)";
+                copyBtn.style.borderColor = "#39ff14"; // Neon green success
+                copyBtn.style.color = "#39ff14";
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.style.transform = "scale(1)";
+                    copyBtn.style.borderColor = "var(--neon-cyan)";
+                    copyBtn.style.color = "white";
+                }, 2500);
+            }).catch(err => {
+                alert("Failed to copy. Please select the text and copy manually.");
+            });
+        }
+
+        // --- 5. HIGH-PERFORMANCE CANVAS CONFETTI SYSTEM ---
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const ctx = confettiCanvas.getContext('2d');
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+
+        let particles = [];
+        const confettiColors = ['#ff007f', '#bc13fe', '#ffea00', '#00e5ff', '#ffffff'];
+
+        window.addEventListener('resize', () => {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        });
+
+        class ConfettiParticle {
+            constructor() {
+                this.x = confettiCanvas.width / 2; 
+                this.y = confettiCanvas.height / 2;
+                this.r = Math.random() * 6 + 4; 
+                this.dx = Math.random() * 24 - 12; // Wider explosion
+                this.dy = Math.random() * -24 - 5; 
+                this.color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                this.tilt = Math.floor(Math.random() * 10) - 10;
+                this.tiltAngleInc = (Math.random() * 0.07) + 0.05;
+                this.tiltAngle = 0;
+                this.gravity = 0.6; // Slightly faster fall
+                this.shape = Math.random() > 0.5 ? 'circle' : 'rect';
+            }
+            update() {
+                this.dy += this.gravity; 
+                this.x += this.dx;
+                this.y += this.dy;
+                this.tiltAngle += this.tiltAngleInc;
+                this.tilt = Math.sin(this.tiltAngle) * 15;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.lineWidth = this.r;
+                ctx.strokeStyle = this.color;
+                ctx.fillStyle = this.color;
+                // Add neon glow to confetti too
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                
+                if (this.shape === 'circle') {
+                    ctx.arc(this.x + this.tilt, this.y, this.r / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.moveTo(this.x + this.tilt + this.r, this.y);
+                    ctx.lineTo(this.x + this.tilt, this.y + this.tilt + this.r);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function fireConfetti() {
+            particles = [];
+            for (let i = 0; i < 200; i++) { // More confetti
+                particles.push(new ConfettiParticle());
+            }
+            animateConfetti();
+        }
+
+        let animationId;
+        function animateConfetti() {
+            animationId = requestAnimationFrame(animateConfetti);
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            let activeParticles = 0;
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+                if (p.y < confettiCanvas.height + 50) activeParticles++;
+            });
+
+            if (activeParticles === 0) cancelAnimationFrame(animationId);
+        }
+    </script>
+</body>
+</html>
